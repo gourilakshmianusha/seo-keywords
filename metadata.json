@@ -1,0 +1,6 @@
+{
+  "name": "Domain SEO & Keyword Intelligence Suite",
+  "description": "Universal SEO intelligence suite generating targeted keywords, page-by-page SEO architecture, meta titles, descriptions, OpenGraph feature image specs, and multi-tech code across 17 industry verticals including Astrology, SaaS, E-Commerce, and Healthcare with CSV and PDF exports.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
