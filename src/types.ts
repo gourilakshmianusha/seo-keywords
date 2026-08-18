@@ -11,6 +11,9 @@ export interface KeywordItem {
   relevanceScore: number;
   contentOpportunity: string;
   targetUrlSlug: string;
+  serpFeatureTarget?: string; // e.g. "Featured Snippet #0", "Google AI Overview", "People Also Ask (PAA)", "Top 3 Organic", "Local Pack"
+  googleRankingTip?: string; // Actionable directive to rank #1 on Google
+  rankPotential?: 'Quick Win (1-2 wks)' | 'High Growth (3-6 wks)' | 'Authority Target (2-4 mos)' | 'Top Tier';
 }
 
 export interface KeywordOption {
@@ -21,6 +24,9 @@ export interface KeywordOption {
   intent?: 'Transactional' | 'Commercial' | 'Informational' | 'Navigational';
   cpc?: string;
   isPrimary?: boolean;
+  serpFeatureTarget?: string; // e.g. "Featured Snippet", "Google AI Overview", "Top 3 Organic"
+  googleRankingTip?: string;
+  rankTimeframe?: string; // e.g. "1-3 weeks", "1-2 months"
 }
 
 export interface MetaTagPreset {

@@ -53,7 +53,10 @@ export function generateKeywordOptionsForPath(
     vol: string,
     kd: number,
     intent: KeywordOption["intent"] = "Commercial",
-    cpc = "$2.40"
+    cpc = "$2.40",
+    serpFeature = "Top 3 Organic",
+    rankingTip = "Place in H1 tag, first 100 words of body copy, and meta title to boost Google relevance score.",
+    timeframe = "1-3 weeks (Quick Win)"
   ) => {
     const trimmed = kw.trim();
     if (!trimmed || optionsMap.has(trimmed.toLowerCase())) return;
@@ -66,24 +69,108 @@ export function generateKeywordOptionsForPath(
       intent,
       cpc,
       isPrimary: existingPrimary ? existingPrimary.toLowerCase() === trimmed.toLowerCase() : false,
+      serpFeatureTarget: serpFeature,
+      googleRankingTip: rankingTip,
+      rankTimeframe: timeframe,
     });
   };
 
   if (existingPrimary) {
-    addOption(existingPrimary, "24.5K/mo", 32, "Commercial", "$3.80");
+    addOption(
+      existingPrimary,
+      "24.5K/mo",
+      32,
+      "Commercial",
+      "$3.80",
+      "Top 3 Organic Blue Link",
+      "Include in page title, H1, and lead paragraph with high topical depth to secure top 3 Google ranking.",
+      "3-5 weeks"
+    );
   }
 
-  addOption(baseTerm, "18.2K/mo", 28, "Informational", "$1.95");
-  addOption(`best ${baseTerm}`, "14.6K/mo", 44, "Commercial", "$4.20");
-  addOption(`${baseTerm} online`, "12.1K/mo", 22, "Transactional", "$3.50");
-  addOption(`${brandName.toLowerCase()} ${baseTerm}`, "9.4K/mo", 15, "Navigational", "$1.10");
-  addOption(`free ${baseTerm} calculator`, "8.7K/mo", 26, "Transactional", "$2.80");
-  addOption(`how to use ${baseTerm}`, "6.2K/mo", 18, "Informational", "$0.85");
-  addOption(`${baseTerm} reviews and guide`, "5.5K/mo", 30, "Commercial", "$3.10");
+  addOption(
+    baseTerm,
+    "18.2K/mo",
+    28,
+    "Informational",
+    "$1.95",
+    "Google AI Overview & Featured Snippet",
+    "Provide a direct, 45-word explanatory answer right under the H2 to win Google Position 0.",
+    "2-3 weeks (Quick Win)"
+  );
+  addOption(
+    `best ${baseTerm}`,
+    "14.6K/mo",
+    44,
+    "Commercial",
+    "$4.20",
+    "Google Comparison Carousel",
+    "Implement a comparative pros/cons matrix table and user review aggregate schema to capture high-intent buyers.",
+    "4-8 weeks"
+  );
+  addOption(
+    `${baseTerm} online`,
+    "12.1K/mo",
+    22,
+    "Transactional",
+    "$3.50",
+    "Top 3 Organic",
+    "Add clear interactive CTA button above the fold and secure HTTPS canonical tagging.",
+    "1-3 weeks (Quick Win)"
+  );
+  addOption(
+    `${brandName.toLowerCase()} ${baseTerm}`,
+    "9.4K/mo",
+    15,
+    "Navigational",
+    "$1.10",
+    "SiteLinks & Brand Knowledge Graph",
+    "Configure Organization JSON-LD schema with exact match Brand name to claim Google Knowledge Panel.",
+    "1-2 weeks (Immediate)"
+  );
+  addOption(
+    `free ${baseTerm} calculator`,
+    "8.7K/mo",
+    26,
+    "Transactional",
+    "$2.80",
+    "Interactive Tool Rich Result",
+    "Use SoftwareApplication / WebApplication schema and client-side interactive inputs for fast indexing.",
+    "2-4 weeks (Quick Win)"
+  );
+  addOption(
+    `how to use ${baseTerm}`,
+    "6.2K/mo",
+    18,
+    "Informational",
+    "$0.85",
+    "People Also Ask (PAA) & FAQ Accordion",
+    "Format with step-by-step numbered list (H3) and FAQPage structured data to trigger Google PAA accordion.",
+    "1-3 weeks (Quick Win)"
+  );
+  addOption(
+    `${baseTerm} reviews and guide`,
+    "5.5K/mo",
+    30,
+    "Commercial",
+    "$3.10",
+    "Review Snippets (Stars in SERP)",
+    "Integrate Review Schema (AggregateRating) to display yellow review stars directly in Google search results.",
+    "2-4 weeks"
+  );
 
   if (existingSecondary && Array.isArray(existingSecondary)) {
     existingSecondary.forEach((sec, idx) => {
-      addOption(sec, `${(15 - idx * 2.5).toFixed(1)}K/mo`, 20 + idx * 6, "Informational", "$2.20");
+      addOption(
+        sec,
+        `${(15 - idx * 2.5).toFixed(1)}K/mo`,
+        20 + idx * 6,
+        "Informational",
+        "$2.20",
+        idx % 2 === 0 ? "Google AI Overview" : "Featured Snippet #0",
+        `Target semantic entity variations in H2/H3 subheadings to boost Google topical authority.`,
+        `${2 + idx * 2} weeks`
+      );
     });
   }
 
@@ -355,6 +442,9 @@ export function generateSmartReport(domain: string, nicheInput?: string, targetA
       relevanceScore: 99,
       contentOpportunity: "Homepage Hero Section & Primary Value Proposition",
       targetUrlSlug: "/",
+      serpFeatureTarget: "Top 3 Organic Blue Link",
+      googleRankingTip: "Place exact target phrase in Title Tag, H1, and first 100 words of lead paragraph. Include clear internal links with anchor text.",
+      rankPotential: "Quick Win (1-2 wks)",
     },
     {
       id: "kw-2",
@@ -369,6 +459,9 @@ export function generateSmartReport(domain: string, nicheInput?: string, targetA
       relevanceScore: 94,
       contentOpportunity: "Comparison Table & Competitive Advantage Matrix",
       targetUrlSlug: "/pricing",
+      serpFeatureTarget: "Google Comparison Carousel & Top 3",
+      googleRankingTip: "Build an honest side-by-side comparison table with clear feature ticks, price differences, and migration guides to rank for buyer-intent searchers.",
+      rankPotential: "High Growth (3-6 wks)",
     },
     {
       id: "kw-3",
@@ -383,6 +476,9 @@ export function generateSmartReport(domain: string, nicheInput?: string, targetA
       relevanceScore: 96,
       contentOpportunity: "Interactive ROI / Cost Calculator Page",
       targetUrlSlug: "/pricing",
+      serpFeatureTarget: "Price Rich Snippets & FAQ Accordion",
+      googleRankingTip: "Implement PriceSpecification Schema (JSON-LD) with currency and tier pricing to get direct pricing displays in Google SERPs.",
+      rankPotential: "Quick Win (1-2 wks)",
     },
     {
       id: "kw-4",
@@ -397,6 +493,9 @@ export function generateSmartReport(domain: string, nicheInput?: string, targetA
       relevanceScore: 91,
       contentOpportunity: "Step-by-Step Onboarding Video & Tutorial Documentation",
       targetUrlSlug: "/docs",
+      serpFeatureTarget: "Featured Snippet #0 & People Also Ask (PAA)",
+      googleRankingTip: "Use an ordered <ol> list under an H2 question header with 4-6 concise steps (40-50 words total) to claim Google's coveted Position 0 snippet.",
+      rankPotential: "Quick Win (1-2 wks)",
     },
     {
       id: "kw-5",
@@ -411,6 +510,9 @@ export function generateSmartReport(domain: string, nicheInput?: string, targetA
       relevanceScore: 89,
       contentOpportunity: "Customer Case Studies & Verified Testimonials Section",
       targetUrlSlug: "/",
+      serpFeatureTarget: "Review Snippets (Gold Stars in SERP)",
+      googleRankingTip: "Add Schema.org AggregateRating markup with genuine reviewer quotes to generate high-CTR gold star ratings in Google search listings.",
+      rankPotential: "Quick Win (1-2 wks)",
     },
     {
       id: "kw-6",
@@ -425,6 +527,9 @@ export function generateSmartReport(domain: string, nicheInput?: string, targetA
       relevanceScore: 93,
       contentOpportunity: "Free Interactive Tool or Sample Audit Widget",
       targetUrlSlug: pagesList[1]?.path || "/features",
+      serpFeatureTarget: "Google AI Overview & Interactive Web Tool",
+      googleRankingTip: "Provide instant value without registration barriers to achieve high time-on-page and low bounce rates, signaling top quality to Google RankBrain.",
+      rankPotential: "Quick Win (1-2 wks)",
     },
   ];
 
