@@ -13,6 +13,16 @@ export interface KeywordItem {
   targetUrlSlug: string;
 }
 
+export interface KeywordOption {
+  keyword: string;
+  searchVolume?: string;
+  difficulty?: number; // 0-100
+  difficultyLabel?: 'Easy' | 'Medium' | 'Hard';
+  intent?: 'Transactional' | 'Commercial' | 'Informational' | 'Navigational';
+  cpc?: string;
+  isPrimary?: boolean;
+}
+
 export interface MetaTagPreset {
   id: string;
   label: string;
@@ -25,6 +35,7 @@ export interface MetaTagPreset {
   ogDescription: string;
   canonicalUrl: string;
   focusKeyword: string;
+  focusKeywordOptions?: string[];
 }
 
 export interface FeatureImageSpec {
@@ -53,6 +64,7 @@ export interface PageSeoItem {
   metaDescription: string;
   primaryKeyword: string;
   secondaryKeywords: string[];
+  keywordOptions?: KeywordOption[];
   h1: string;
   h2s: string[];
   searchIntent: 'Transactional' | 'Commercial' | 'Informational' | 'Navigational';

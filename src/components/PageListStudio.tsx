@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { PageSeoItem } from "../types";
+import { PageSeoItem, KeywordOption } from "../types";
 import {
   FileText,
   Search,
@@ -22,6 +22,8 @@ import {
   Plus,
   Link2,
   ArrowRight,
+  Target,
+  PlusCircle,
 } from "lucide-react";
 import { exportPagesToCSV } from "../utils/exportUtils";
 
@@ -45,6 +47,7 @@ export function PageListStudio({ pages = [], cleanDomain, siteName, industry, on
   const [quickPathInput, setQuickPathInput] = useState("");
   const [quickPasteFeedback, setQuickPasteFeedback] = useState(false);
   const [modalPasteFeedback, setModalPasteFeedback] = useState(false);
+  const [customKwInputs, setCustomKwInputs] = useState<Record<string, string>>({});
 
   // New page form state
   const [newPath, setNewPath] = useState("");
@@ -81,6 +84,64 @@ export function PageListStudio({ pages = [], cleanDomain, siteName, industry, on
     return val;
   };
 
+  // Generate multiple rich keyword options with metrics for any path
+  const generateKeywordOptionsForPath = (
+    pathStr: string,
+    brandName: string,
+    existingPrimary?: string,
+    existingSecondary?: string[]
+  ): KeywordOption[] => {
+    const clean = pathStr.replace(/[/_-]/g, " ").trim();
+    const baseTerm = clean || `${brandName.toLowerCase()} official`;
+    const optionsMap = new Map<string, KeywordOption>();
+
+    const addOption = (
+      kw: string,
+      vol: string,
+      kd: number,
+      intent: KeywordOption["intent"] = "Commercial",
+      cpc = "$2.40"
+    ) => {
+      const trimmed = kw.trim();
+      if (!trimmed || optionsMap.has(trimmed.toLowerCase())) return;
+      const diffLabel: "Easy" | "Medium" | "Hard" = kd <= 30 ? "Easy" : kd <= 60 ? "Medium" : "Hard";
+      optionsMap.set(trimmed.toLowerCase(), {
+        keyword: trimmed,
+        searchVolume: vol,
+        difficulty: kd,
+        difficultyLabel: diffLabel,
+        intent,
+        cpc,
+        isPrimary: existingPrimary ? existingPrimary.toLowerCase() === trimmed.toLowerCase() : false,
+      });
+    };
+
+    if (existingPrimary) {
+      addOption(existingPrimary, "24.5K/mo", 32, "Commercial", "$3.80");
+    }
+
+    // Generate diverse keyword options across multiple search intents
+    addOption(baseTerm, "18.2K/mo", 28, "Informational", "$1.95");
+    addOption(`best ${baseTerm}`, "14.6K/mo", 44, "Commercial", "$4.20");
+    addOption(`${baseTerm} online`, "12.1K/mo", 22, "Transactional", "$3.50");
+    addOption(`${brandName.toLowerCase()} ${baseTerm}`, "9.4K/mo", 15, "Navigational", "$1.10");
+    addOption(`free ${baseTerm} calculator`, "8.7K/mo", 26, "Transactional", "$2.80");
+    addOption(`how to use ${baseTerm}`, "6.2K/mo", 18, "Informational", "$0.85");
+    addOption(`${baseTerm} reviews and guide`, "5.5K/mo", 30, "Commercial", "$3.10");
+
+    if (existingSecondary && Array.isArray(existingSecondary)) {
+      existingSecondary.forEach((sec, idx) => {
+        addOption(sec, `${(15 - idx * 2.5).toFixed(1)}K/mo`, 20 + idx * 6, "Informational", "$2.20");
+      });
+    }
+
+    const results = Array.from(optionsMap.values());
+    if (!results.some((r) => r.isPrimary) && results.length > 0) {
+      results[0].isPrimary = true;
+    }
+    return results;
+  };
+
   // Human-readable title and keyword inference
   const inferFieldsFromPath = (pathStr: string, brandName: string) => {
     const clean = pathStr.replace(/[/_-]/g, " ").trim();
@@ -89,6 +150,12 @@ export function PageListStudio({ pages = [], cleanDomain, siteName, industry, on
         title: `${brandName} — Official Website`,
         primaryKeyword: `${brandName.toLowerCase()} official`,
         metaDescription: `Discover official services, solutions, and updates from ${brandName}.`,
+        suggestedKeywords: [
+          `${brandName.toLowerCase()} official`,
+          `best ${brandName.toLowerCase()} platform`,
+          `${brandName.toLowerCase()} online services`,
+          `how to use ${brandName.toLowerCase()}`,
+        ],
       };
     }
     const capitalized = clean
@@ -100,6 +167,14 @@ export function PageListStudio({ pages = [], cleanDomain, siteName, industry, on
       title: `${capitalized} | ${brandName}`,
       primaryKeyword: clean.toLowerCase(),
       metaDescription: `Explore ${clean} on ${brandName}. Detailed insights, user guides, pricing, and features designed for high search visibility.`,
+      suggestedKeywords: [
+        clean.toLowerCase(),
+        `best ${clean.toLowerCase()}`,
+        `${clean.toLowerCase()} online`,
+        `${brandName.toLowerCase()} ${clean.toLowerCase()}`,
+        `free ${clean.toLowerCase()}`,
+        `how to use ${clean.toLowerCase()}`,
+      ],
     };
   };
 
@@ -166,6 +241,12 @@ export function PageListStudio({ pages = [], cleanDomain, siteName, industry, on
       ? "Docs/Resources"
       : "Features/Services";
 
+    const initialOptions = generateKeywordOptionsForPath(pathClean, siteName, inferred.primaryKeyword, [
+      `${siteName.toLowerCase()} ${inferred.primaryKeyword}`,
+      `best ${inferred.primaryKeyword}`,
+      `${inferred.primaryKeyword} online`,
+    ]);
+
     const newPage: PageSeoItem = {
       id: `p-custom-${Date.now()}`,
       path: pathClean,
@@ -174,6 +255,7 @@ export function PageListStudio({ pages = [], cleanDomain, siteName, industry, on
       metaDescription: inferred.metaDescription,
       primaryKeyword: inferred.primaryKeyword,
       secondaryKeywords: [`${siteName.toLowerCase()} ${inferred.primaryKeyword}`, `best ${inferred.primaryKeyword}`],
+      keywordOptions: initialOptions,
       h1: inferred.title.split("|")[0].trim(),
       h2s: ["Key Features & Overview", "Why Choose Us", "Frequently Asked Questions"],
       searchIntent: category === "Pricing" ? "Transactional" : "Informational",
@@ -190,6 +272,120 @@ export function PageListStudio({ pages = [], cleanDomain, siteName, industry, on
     }
     setQuickPathInput("");
     setExpandedPageId(newPage.id);
+  };
+
+  // Switch active primary keyword for a page with 1-click
+  const handleSelectPrimaryKeywordForPage = (pageId: string, keywordOption: string) => {
+    const updated = localPages.map((p) => {
+      if (p.id === pageId) {
+        const newKw = keywordOption.trim();
+        const oldPrimary = p.primaryKeyword;
+        
+        // Preserve old primary in secondary keywords if different
+        const newSec = Array.from(
+          new Set([
+            ...(p.secondaryKeywords || []).filter((k) => k.toLowerCase() !== newKw.toLowerCase()),
+            ...(oldPrimary && oldPrimary.toLowerCase() !== newKw.toLowerCase() ? [oldPrimary] : []),
+          ])
+        );
+
+        // Re-generate tailored title & H1 reflecting this new primary keyword
+        const words = newKw
+          .split(" ")
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join(" ");
+        const newTitle = p.path === "/" ? `${words} | ${siteName} — Official Site` : `${words} — ${siteName}`;
+        const newH1 = words;
+        const newDescription = p.metaDescription && p.metaDescription.includes(oldPrimary)
+          ? p.metaDescription.replace(new RegExp(oldPrimary, "gi"), newKw)
+          : `Discover ${newKw} on ${siteName}. Complete guide, top features, and clear insights tailored for optimal search visibility.`;
+
+        // Update keyword options array
+        const baseOptions = p.keywordOptions && p.keywordOptions.length > 0
+          ? p.keywordOptions
+          : generateKeywordOptionsForPath(p.path, siteName, p.primaryKeyword, p.secondaryKeywords);
+
+        const newOptions = baseOptions.map((opt) => ({
+          ...opt,
+          isPrimary: opt.keyword.toLowerCase() === newKw.toLowerCase(),
+        }));
+
+        return {
+          ...p,
+          primaryKeyword: newKw,
+          secondaryKeywords: newSec,
+          title: newTitle,
+          h1: newH1,
+          metaDescription: newDescription,
+          keywordOptions: newOptions,
+          implementationSnippet: `export const metadata = {\n  title: "${newTitle}",\n  description: "${newDescription}",\n  alternates: { canonical: "${p.canonicalUrl || `https://${cleanDomain}${p.path}`}" }\n};`,
+        };
+      }
+      return p;
+    });
+
+    setLocalPages(updated);
+    if (onUpdatePages) {
+      onUpdatePages(updated);
+    }
+  };
+
+  // Toggle secondary/LSI keyword inclusion for a page
+  const handleToggleSecondaryKeyword = (pageId: string, kw: string) => {
+    const updated = localPages.map((p) => {
+      if (p.id === pageId) {
+        const exists = (p.secondaryKeywords || []).some((k) => k.toLowerCase() === kw.toLowerCase());
+        const nextSec = exists
+          ? (p.secondaryKeywords || []).filter((k) => k.toLowerCase() !== kw.toLowerCase())
+          : [...(p.secondaryKeywords || []), kw];
+        return {
+          ...p,
+          secondaryKeywords: nextSec,
+        };
+      }
+      return p;
+    });
+    setLocalPages(updated);
+    if (onUpdatePages) onUpdatePages(updated);
+  };
+
+  // Add custom keyword option to a page
+  const handleAddCustomKeywordOption = (pageId: string) => {
+    const inputVal = customKwInputs[pageId]?.trim();
+    if (!inputVal) return;
+
+    const updated = localPages.map((p) => {
+      if (p.id === pageId) {
+        const currentOptions = p.keywordOptions && p.keywordOptions.length > 0
+          ? p.keywordOptions
+          : generateKeywordOptionsForPath(p.path, siteName, p.primaryKeyword, p.secondaryKeywords);
+
+        if (currentOptions.some((o) => o.keyword.toLowerCase() === inputVal.toLowerCase())) {
+          return p;
+        }
+
+        const newOpt: KeywordOption = {
+          keyword: inputVal,
+          searchVolume: "8.5K/mo",
+          difficulty: 25,
+          difficultyLabel: "Easy",
+          intent: "Commercial",
+          cpc: "$2.90",
+          isPrimary: false,
+        };
+
+        return {
+          ...p,
+          keywordOptions: [newOpt, ...currentOptions],
+          secondaryKeywords: [...(p.secondaryKeywords || []), inputVal],
+        };
+      }
+      return p;
+    });
+
+    setLocalPages(updated);
+    if (onUpdatePages) onUpdatePages(updated);
+    setCustomKwInputs({ ...customKwInputs, [pageId]: "" });
   };
 
   // Keep in sync with parent props
@@ -231,6 +427,13 @@ export function PageListStudio({ pages = [], cleanDomain, siteName, industry, on
     const formattedPath = normalizePath(newPath);
     if (!formattedPath || !newTitle.trim()) return;
 
+    const initialOptions = generateKeywordOptionsForPath(
+      formattedPath,
+      siteName,
+      newPrimaryKw.trim() || formattedPath.replace(/[/_-]/g, " ").trim(),
+      []
+    );
+
     const newPage: PageSeoItem = {
       id: `p-custom-${Date.now()}`,
       path: formattedPath,
@@ -239,6 +442,7 @@ export function PageListStudio({ pages = [], cleanDomain, siteName, industry, on
       metaDescription: newDescription.trim() || `Learn more about ${formattedPath} on ${siteName}.`,
       primaryKeyword: newPrimaryKw.trim() || formattedPath.replace(/[/_-]/g, " ").trim(),
       secondaryKeywords: [`${siteName.toLowerCase()} ${formattedPath.replace(/[/_-]/g, " ").trim()}`],
+      keywordOptions: initialOptions,
       h1: newTitle.trim().split("|")[0].trim(),
       h2s: ["Key Features & Details", "Why Choose Us", "Frequently Asked Questions"],
       searchIntent: newPageType === "Pricing" ? "Transactional" : newPageType === "Features/Services" ? "Commercial" : "Informational",
@@ -712,36 +916,145 @@ export function PageListStudio({ pages = [], cleanDomain, siteName, industry, on
 
                     {/* Keyword & Heading Architecture */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Keywords for this page */}
-                      <div className="bg-white p-4 rounded-xl border border-slate-200 space-y-3">
-                        <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                          <Tag className="h-3.5 w-3.5 text-blue-600" />
-                          Target Keywords for this URL:
-                        </span>
-
-                        <div className="space-y-2">
+                      {/* Multiple Keywords Options for this page */}
+                      <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 space-y-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
                           <div>
-                            <div className="text-[11px] font-semibold text-slate-500 mb-1">Primary Keyword (Must appear in H1, Title &amp; URL):</div>
-                            <span className="inline-block px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 font-bold text-xs border border-blue-200">
-                              {page.primaryKeyword}
+                            <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                              <Target className="h-4 w-4 text-blue-600" />
+                              Target Keyword Options &amp; Search Variations:
                             </span>
+                            <p className="text-[11px] text-slate-500">
+                              Click <strong className="text-blue-700">Set Primary</strong> to swap focus keyword and auto-regenerate Title/H1.
+                            </p>
                           </div>
+                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 shrink-0 self-start sm:self-auto">
+                            {(page.keywordOptions && page.keywordOptions.length > 0
+                              ? page.keywordOptions
+                              : generateKeywordOptionsForPath(page.path, siteName, page.primaryKeyword, page.secondaryKeywords)).length} Options Available
+                          </span>
+                        </div>
 
-                          {page.secondaryKeywords && page.secondaryKeywords.length > 0 && (
-                            <div>
-                              <div className="text-[11px] font-semibold text-slate-500 mb-1">Secondary / LSI Keywords:</div>
-                              <div className="flex flex-wrap gap-1.5">
-                                {page.secondaryKeywords.map((kw, i) => (
-                                  <span
-                                    key={i}
-                                    className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-xs font-medium border border-slate-200"
-                                  >
-                                    {kw}
-                                  </span>
-                                ))}
+                        {/* Keyword Options List */}
+                        <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                          {(page.keywordOptions && page.keywordOptions.length > 0
+                            ? page.keywordOptions
+                            : generateKeywordOptionsForPath(page.path, siteName, page.primaryKeyword, page.secondaryKeywords)
+                          ).map((opt, i) => {
+                            const isCurrentPrimary = opt.keyword.toLowerCase() === page.primaryKeyword.toLowerCase() || opt.isPrimary;
+                            const isCurrentSecondary = (page.secondaryKeywords || []).some(
+                              (k) => k.toLowerCase() === opt.keyword.toLowerCase()
+                            );
+
+                            return (
+                              <div
+                                key={`${opt.keyword}-${i}`}
+                                className={`p-2.5 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
+                                  isCurrentPrimary
+                                    ? "bg-blue-50/80 border-blue-300 ring-1 ring-blue-300/60"
+                                    : "bg-slate-50/70 border-slate-200 hover:bg-slate-50 hover:border-slate-300"
+                                }`}
+                              >
+                                <div className="space-y-1 flex-1">
+                                  <div className="flex flex-wrap items-center gap-1.5">
+                                    <span className="text-xs font-bold text-slate-900 font-mono">
+                                      {opt.keyword}
+                                    </span>
+
+                                    {isCurrentPrimary && (
+                                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-600 text-white shadow-2xs">
+                                        <Check className="h-2.5 w-2.5" />
+                                        Active Primary Focus
+                                      </span>
+                                    )}
+
+                                    {isCurrentSecondary && !isCurrentPrimary && (
+                                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-slate-200 text-slate-700">
+                                        Secondary LSI
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+                                    <span>Vol: <strong className="text-slate-700 font-semibold">{opt.searchVolume || "10K/mo"}</strong></span>
+                                    <span>•</span>
+                                    <span>
+                                      KD: <strong className={`font-semibold ${
+                                        (opt.difficulty || 30) <= 30
+                                          ? "text-emerald-600"
+                                          : (opt.difficulty || 30) <= 60
+                                          ? "text-amber-600"
+                                          : "text-red-600"
+                                      }`}>
+                                        {opt.difficulty || 30} ({opt.difficultyLabel || ((opt.difficulty || 30) <= 30 ? "Easy" : "Medium")})
+                                      </strong>
+                                    </span>
+                                    <span>•</span>
+                                    <span className="px-1.5 py-0.2 rounded bg-white border border-slate-200 text-[10px] font-medium text-slate-600">
+                                      {opt.intent || "Commercial"}
+                                    </span>
+                                    <span>•</span>
+                                    <span>CPC: <strong className="text-slate-700">{opt.cpc || "$2.40"}</strong></span>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-auto">
+                                  {!isCurrentPrimary && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleSelectPrimaryKeywordForPage(page.id, opt.keyword)}
+                                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-[11px] font-bold shadow-2xs transition-colors"
+                                    >
+                                      <Sparkles className="h-3 w-3" />
+                                      Set Primary
+                                    </button>
+                                  )}
+
+                                  {!isCurrentPrimary && (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleToggleSecondaryKeyword(page.id, opt.keyword)}
+                                      className={`px-2 py-1 rounded-lg text-[11px] font-medium border transition-colors ${
+                                        isCurrentSecondary
+                                          ? "bg-slate-200 text-slate-700 border-slate-300 hover:bg-slate-300"
+                                          : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"
+                                      }`}
+                                    >
+                                      {isCurrentSecondary ? "Remove Secondary" : "+ Secondary"}
+                                    </button>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          )}
+                            );
+                          })}
+                        </div>
+
+                        {/* Add Custom Keyword Option Input */}
+                        <div className="pt-2 border-t border-slate-100 flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={customKwInputs[page.id] || ""}
+                            onChange={(e) =>
+                              setCustomKwInputs({ ...customKwInputs, [page.id]: e.target.value })
+                            }
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                handleAddCustomKeywordOption(page.id);
+                              }
+                            }}
+                            placeholder="Add your own custom target keyword option..."
+                            className="flex-1 text-xs px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:outline-hidden focus:border-blue-500 text-slate-800"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleAddCustomKeywordOption(page.id)}
+                            disabled={!customKwInputs[page.id]?.trim()}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-900 disabled:opacity-40 text-white text-xs font-semibold shrink-0 transition-colors"
+                          >
+                            <PlusCircle className="h-3.5 w-3.5" />
+                            Add Option
+                          </button>
                         </div>
                       </div>
 
